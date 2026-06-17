@@ -32,12 +32,17 @@
   .mark .v{color:var(--env);font-size:15px;vertical-align:super;margin-left:2px;}
   .tag{color:var(--ink-soft);font-size:14px;}
   .savebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .sendnote{margin:0 0 18px;padding:11px 14px;border:1px solid #E6C9A8;background:#FBF0E2;color:#6b4f36;
-    border-radius:12px;font-size:13px;line-height:1.45;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+  .sendnote{margin:0 0 18px;padding:12px 14px;border:1px solid #E6C9A8;background:#FBF0E2;color:#6b4f36;
+    border-radius:12px;font-size:13px;line-height:1.45;display:flex;flex-direction:column;gap:10px;}
   .sendnote b{color:#5a3f29;}
+  .sendnote .sn-base,.sendnote .sn-link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .sendnote label{font-weight:600;}
+  .sendnote input[type=text]{flex:1;min-width:220px;font:inherit;font-size:13px;padding:7px 10px;
+    border:1px solid #E6C9A8;border-radius:8px;background:#fff;color:#6b4f36;}
   .sendnote button{flex:none;font:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;
     border:1px solid #E6C9A8;background:#fff;color:#6b4f36;cursor:pointer;}
-  .sendnote button:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+  .sendnote button:focus-visible,.sendnote input:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+  .sendnote .sn-done{align-self:flex-start;}
   body.viewonly .sendnote{display:none !important;}
   .topright{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .presentbtn{font:inherit;font-size:12px;font-weight:600;padding:7px 14px;border-radius:999px;
@@ -269,8 +274,16 @@
   </header>
 
   <div class="sendnote" id="sendNote" role="status" hidden>
-    <span>Card downloaded. Deploy it as a <b>new</b> Netlify site — open a fresh <b>app.netlify.com/drop</b> and drop it there. Don't drop it on your builder site, or it will replace the builder.</span>
-    <button id="sendNoteClose" type="button">Got it</button>
+    <div class="sn-msg">Card downloaded as <b id="snFile">card.html</b>. Upload it to your repo as a new file — keep this exact name, and don't name it index.html.</div>
+    <div class="sn-base">
+      <label for="pagesBase">Your Pages address (set once):</label>
+      <input id="pagesBase" type="text" inputmode="url" autocomplete="off" placeholder="https://USERNAME.github.io/REPO/">
+    </div>
+    <div class="sn-link" id="snLinkRow" hidden>
+      <input id="cardLink" type="text" readonly>
+      <button id="copyLink" type="button">Copy link</button>
+    </div>
+    <button id="sendNoteClose" type="button" class="sn-done">Got it</button>
   </div>
 
   <div class="layout">
@@ -966,6 +979,7 @@
     setTimeout(()=>URL.revokeObjectURL(url), 1500);
   }
   function safeName(){ return (($('titleInput').value||'card').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').slice(0,40))||'card'; }
+  let lastCardFile='';
   $('exportBtn').addEventListener('click', ()=>{
     downloadText('envelope-design-'+safeName()+'.json', JSON.stringify(collectState()));
     flashSaved('Design exported');
@@ -975,14 +989,36 @@
     let src;
     try{ const r=await fetch(location.href, {cache:'no-store'}); src=await r.text(); }
     catch(e){ flashSaved('Open your hosted link first, then try again'); return; }
+    const ttl=($('titleInput').value||'A card for you').replace(/[<>"]/g,'').slice(0,80);
+    src = src.replace(/<title>[\s\S]*?<\/title>/i, '<title>'+ttl+'</title>');
     const data=JSON.stringify(collectState()).replace(/<\//g,'<\\/');
-    const inject='<script>window.__CARD__='+data+';window.__VIEWONLY__=true;<\/script>\n';
+    const meta='<meta property="og:title" content="'+ttl+'">'
+             +'<meta property="og:description" content="A card for you \u2014 tap to open.">'
+             +'<meta name="twitter:card" content="summary">';
+    const inject=meta+'<script>window.__CARD__='+data+';window.__VIEWONLY__=true;<\/script>\n';
     src = src.indexOf('</head>')>-1 ? src.replace('</head>', inject+'</head>') : inject+src;
-    downloadFile('card-'+safeName()+'.html', src, 'text/html');
+    lastCardFile='card-'+safeName()+'.html';
+    downloadFile(lastCardFile, src, 'text/html');
     flashSaved('Card to send downloaded \u2713');
+    $('snFile').textContent=lastCardFile;
+    updateCardLink();
     $('sendNote').hidden=false;
   });
   $('sendNoteClose').addEventListener('click', ()=>{ $('sendNote').hidden=true; });
+  const PAGES_KEY='envelope2_pagesbase';
+  function normBase(b){ b=(b||'').trim(); if(b && !b.endsWith('/')) b+='/'; return b; }
+  function updateCardLink(){
+    const base=normBase($('pagesBase').value);
+    if(base && lastCardFile){ $('cardLink').value=base+lastCardFile; $('snLinkRow').hidden=false; }
+    else { $('snLinkRow').hidden=true; }
+  }
+  $('pagesBase').addEventListener('input', ()=>{ try{ localStorage.setItem(PAGES_KEY,$('pagesBase').value); }catch(_){} updateCardLink(); });
+  try{ const pb=localStorage.getItem(PAGES_KEY); if(pb) $('pagesBase').value=pb; }catch(_){}
+  $('copyLink').addEventListener('click', async ()=>{
+    const v=$('cardLink').value;
+    try{ await navigator.clipboard.writeText(v); flashSaved('Link copied \u2713'); }
+    catch(_){ $('cardLink').focus(); $('cardLink').select(); try{ document.execCommand('copy'); flashSaved('Link copied \u2713'); }catch(e){ flashSaved('Tap the link, then Copy'); } }
+  });
   $('importInput').addEventListener('change', e=>{
     const f=e.target.files[0]; if(!f) return;
     const r=new FileReader();
