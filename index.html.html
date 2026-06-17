@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Card Animation Builder 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --paper:#EFEDE6; --paper-edge:#E3E0D6;
+    --ink:#2C2E33; --ink-soft:#6A6C72;
+    --line:#D8D5CB; --field:#FBFAF6;
+    --accent:#2C2E33; --accent-ink:#FBFAF6; --focus:#C58A63;
+    --cream:#F2EBDC;
+    --env:#5BA6A8;
+    --seal:#F0A988; --seal-text:#B45B3D;
+    --seal-size:46%; --seal-top:64%;
+    --card-text:#3a2f25;
+    --card-bg:#F1E7D4;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1120px;margin:0 auto;padding:24px 18px 56px;}
+  header.masthead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    padding-bottom:18px;margin-bottom:22px;border-bottom:1px solid var(--line);}
+  .mark{font-family:'Fraunces',serif;font-weight:600;font-size:26px;letter-spacing:-.01em;}
+  .mark .v{color:var(--env);font-size:15px;vertical-align:super;margin-left:2px;}
+  .tag{color:var(--ink-soft);font-size:14px;}
+  .savebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .sendnote{margin:0 0 18px;padding:12px 14px;border:1px solid #E6C9A8;background:#FBF0E2;color:#6b4f36;
+    border-radius:12px;font-size:13px;line-height:1.45;display:flex;flex-direction:column;gap:10px;}
+  .sendnote b{color:#5a3f29;}
+  .sendnote .sn-base,.sendnote .sn-link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .sendnote label{font-weight:600;}
+  .sendnote input[type=text]{flex:1;min-width:220px;font:inherit;font-size:13px;padding:7px 10px;
+    border:1px solid #E6C9A8;border-radius:8px;background:#fff;color:#6b4f36;}
+  .sendnote button{flex:none;font:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;
+    border:1px solid #E6C9A8;background:#fff;color:#6b4f36;cursor:pointer;}
+  .sendnote button:focus-visible,.sendnote input:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+  .sendnote .sn-done{align-self:flex-start;}
+  body.viewonly .sendnote{display:none !important;}
+  .topright{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .presentbtn{font:inherit;font-size:12px;font-weight:600;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--ink);background:var(--ink);color:var(--accent-ink);cursor:pointer;}
+  .presentbtn:hover{opacity:.92;}
+  .presentbtn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+  body.presenting .panel{display:none;}
+  body.presenting .layout{grid-template-columns:1fr;}
+  body.presenting .savebar,body.presenting .tag,body.presenting footer.foot,
+  body.presenting .hint,body.presenting .howto{display:none;}
+  body.presenting .presentbtn{position:fixed;top:10px;right:12px;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,.25);}
+  body.viewonly .masthead,body.viewonly footer.foot,body.viewonly .panel,
+  body.viewonly .hint,body.viewonly .howto{display:none;}
+  body.viewonly .layout{grid-template-columns:1fr;}
+  .savestate{font-size:12px;color:var(--ink-soft);}
+  .savebar button{font:inherit;font-size:12px;font-weight:500;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;}
+  .savebar button:hover{border-color:var(--ink-soft);}
+  .savebar button:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+  .savebar label.impbtn{font:inherit;font-size:12px;font-weight:500;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;position:relative;}
+  .savebar label.impbtn:hover{border-color:var(--ink-soft);}
+  .savebar label.impbtn input{position:absolute;width:1px;height:1px;opacity:0;}
+
+  .layout{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:start;}
+  @media (max-width:860px){ .layout{grid-template-columns:1fr;gap:22px;} }
+
+  /* ---------- preview ---------- */
+  .caption{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(17px,2.4vw,22px);
+    text-align:center;margin:2px 0 14px;min-height:1.4em;}
+  .stage-shell{position:relative;background:
+      radial-gradient(120% 90% at 50% 18%, #fff 0%, var(--paper) 60%, var(--paper-edge) 100%);
+    border:1px solid var(--line);border-radius:18px;padding:18px;
+    display:flex;flex-direction:column;align-items:center;min-height:430px;}
+  .stage-shell.reading{min-height:600px;}
+  .posgrid{display:grid;grid-template-columns:repeat(3,30px);grid-auto-rows:30px;gap:6px;margin-top:8px;}
+  .posgrid button{border:1px solid var(--line);border-radius:7px;background:var(--field);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;padding:0;}
+  .posgrid button::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--ink-soft);}
+  .posgrid button[aria-pressed="true"]{border-color:var(--ink);background:#fff;box-shadow:0 0 0 2px var(--ink) inset;}
+  .posgrid button[aria-pressed="true"]::after{background:var(--ink);}
+  .posgrid button:focus-visible{outline:2px solid var(--focus);outline-offset:1px;}
+
+  .stage{position:relative;width:360px;max-width:84vw;aspect-ratio:360/410;perspective:1900px;
+    transition:opacity .5s ease;}
+  .stage.gone{opacity:0;pointer-events:none;}
+
+  .card{position:absolute;left:50%;top:62%;width:33%;aspect-ratio:var(--card-aspect,5/7);
+    transform:translate(-50%,-50%) translateY(18%) scale(1);
+    border-radius:9px;overflow:hidden;z-index:20;
+    box-shadow:0 12px 22px rgba(70,55,40,.22), inset 0 0 0 1px rgba(214,200,176,.6);}
+  .face{position:absolute;inset:0;background-color:var(--card-bg);background-position:center;background-size:cover;background-repeat:no-repeat;
+    display:flex;justify-content:center;align-items:flex-end;}
+  .face .ptext{font-family:'Fraunces',serif;color:var(--card-text);text-align:center;
+    padding:7%;font-size:12px;line-height:1.25;text-shadow:0 1px 2px rgba(255,255,255,.35);white-space:pre-wrap;}
+  .face.pos-top{align-items:flex-start;}
+  .face.pos-mid{align-items:center;}
+  .face.empty::after{content:attr(data-empty);position:absolute;inset:0;display:flex;
+    align-items:center;justify-content:center;color:#a9967d;font-family:'Fraunces',serif;font-size:11px;text-align:center;padding:10%;}
+
+  .envelope{position:absolute;inset:0;}
+  .pocket{position:absolute;left:6%;right:6%;top:40%;bottom:4%;background:var(--env);
+    clip-path:polygon(0% 0%, 50% 68%, 100% 0%, 100% 100%, 0% 100%);
+    filter:drop-shadow(0 12px 18px rgba(60,45,35,.20));z-index:30;}
+  .flap{position:absolute;left:6%;right:6%;top:40%;height:38%;transform-origin:top center;
+    transform:rotateX(0deg);transform-style:preserve-3d;z-index:40;
+    filter:drop-shadow(0 5px 6px rgba(60,45,35,.18));}
+  .flapface{position:absolute;inset:0;background:var(--env);
+    clip-path:polygon(0 0, 100% 0, 50% 100%);}
+
+  .seal{position:absolute;left:50%;top:var(--seal-top);width:var(--seal-size);aspect-ratio:1/1.06;
+    transform:translate(-50%,-50%);z-index:55;display:flex;align-items:center;justify-content:center;
+    filter:drop-shadow(0 7px 10px rgba(80,55,40,.42)) drop-shadow(0 2px 3px rgba(80,55,40,.30));}
+  .seal .disc{position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 38% 34%, color-mix(in srgb,var(--seal),#fff 22%) 0%,
+      var(--seal) 58%, color-mix(in srgb,var(--seal),#000 12%) 100%);}
+  .seal .sealimg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
+  .seal .label{position:relative;font-family:'Fraunces',serif;font-weight:600;color:var(--seal-text);
+    text-align:center;line-height:1.04;font-size:clamp(10px,2.3vw,13px);letter-spacing:.3px;
+    text-transform:uppercase;text-shadow:0 1px 0 rgba(255,255,255,.45);}
+  .seal .label small{display:block;font-size:.84em;margin-top:2px;}
+
+  /* envelope animation */
+  .play .seal{animation:popSeal 1.2s cubic-bezier(.4,1.4,.5,1) 1.4s forwards;}
+  .play .flap{animation:openFlap 1.7s cubic-bezier(.45,.05,.3,1) 2.5s forwards;}
+  .play .card{animation:slipOut 2.4s cubic-bezier(.22,.8,.3,1) 4.3s forwards,
+              expand 1.3s cubic-bezier(.3,.7,.25,1) 6.9s forwards;}
+  @keyframes popSeal{0%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1;}
+    35%{transform:translate(-50%,-66%) scale(1.12) rotate(-6deg);opacity:1;}
+    100%{transform:translate(-50%,-160%) scale(.8) rotate(-22deg);opacity:0;}}
+  @keyframes openFlap{0%{transform:rotateX(0);}100%{transform:rotateX(180deg);}}
+  @keyframes slipOut{0%{transform:translate(-50%,-50%) translateY(18%) scale(1);}
+    100%{transform:translate(-50%,-50%) translateY(0%) scale(1);}}
+  @keyframes expand{0%{transform:translate(-50%,-50%) translateY(0%) scale(1);}
+    100%{transform:translate(-50%,-50%) translateY(-24%) scale(2.0);}}
+
+  /* open-arrow hint */
+  /* open cue */
+  .card.ready{cursor:pointer;}
+  .openCue{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:80;display:none;
+    align-items:center;gap:7px;border:1px solid var(--line);cursor:pointer;
+    background:#fff;color:var(--ink);font:inherit;font-weight:600;font-size:13.5px;
+    padding:9px 16px 9px 15px;border-radius:999px;box-shadow:0 6px 18px rgba(60,45,35,.20);
+    animation:cueBob 2s ease-in-out infinite;}
+  .openCue.show{display:inline-flex;}
+  .openCue .chev{display:inline-block;color:var(--env);font-weight:700;animation:cueNudge 2s ease-in-out infinite;}
+  .openCue:hover{border-color:var(--ink-soft);}
+  .openCue:focus-visible{outline:3px solid var(--focus);outline-offset:3px;}
+  @keyframes cueBob{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(-3px);}}
+  @keyframes cueNudge{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
+
+  /* ---------- reader (openable card) ---------- */
+  .reader{position:absolute;inset:18px;display:none;flex-direction:column;align-items:center;
+    justify-content:center;perspective:2200px;}
+  .reader.show{display:flex;}
+  .book{position:relative;width:var(--pw,150px);height:var(--ph,210px);transform-style:preserve-3d;
+    transition:transform .9s cubic-bezier(.3,.7,.25,1);}
+  .book.open{transform:translateX(50%);}
+  .book.flipped{transform:rotateY(180deg);}
+  .leaf{position:absolute;inset:0;transform-style:preserve-3d;}
+  .leaf.cover{transform-origin:left center;transition:transform .9s cubic-bezier(.3,.7,.25,1);transform:translateZ(1px);}
+  .book.open .leaf.cover{transform:rotateY(-180deg);}
+  .rface{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;overflow:hidden;
+    background-color:var(--card-bg);background-position:center;background-size:cover;background-repeat:no-repeat;
+    display:flex;justify-content:center;align-items:flex-end;
+    box-shadow:0 14px 26px rgba(60,45,35,.26);}
+  .rface .ptext{font-family:'Fraunces',serif;color:var(--card-text);text-align:center;padding:7%;
+    font-size:clamp(11px,2.3vw,16px);line-height:1.3;white-space:pre-wrap;text-shadow:0 1px 2px rgba(255,255,255,.35);}
+  .rface.pos-top{align-items:flex-start;} .rface.pos-mid{align-items:center;}
+  .rface.back{transform:rotateY(180deg);}
+  .corner{position:absolute;right:8px;bottom:8px;z-index:6;width:38px;height:38px;border-radius:50%;
+    border:none;cursor:pointer;background:rgba(44,46,51,.86);color:#fff;font-size:15px;line-height:1;
+    box-shadow:0 4px 10px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;}
+  .corner:hover{background:rgba(44,46,51,1);}
+  .corner:focus-visible{outline:3px solid var(--focus);outline-offset:2px;}
+  .corner.flip{transform:scaleX(-1);}
+  .corner.replay{font-size:18px;}
+  .corner.left{left:8px;right:auto;}
+  .spine{position:absolute;top:0;bottom:0;left:0;width:14px;transform:translateX(-7px);
+    background:linear-gradient(90deg, rgba(0,0,0,.16), rgba(0,0,0,0));pointer-events:none;z-index:5;border-radius:8px 0 0 8px;}
+  .book.open .spine{box-shadow:0 0 0 9999px transparent;}
+
+  .rnav{position:absolute;bottom:6px;display:flex;gap:8px;}
+  .rnav button{font:inherit;font-weight:600;font-size:13px;border-radius:999px;cursor:pointer;
+    padding:8px 15px;border:1px solid var(--line);background:#fff;color:var(--ink);}
+  .rnav button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+  .rnav button:focus-visible{outline:3px solid var(--focus);outline-offset:2px;}
+
+  .stage-actions{display:flex;gap:10px;margin-top:18px;}
+  .btn{font:inherit;font-weight:600;font-size:15px;border-radius:999px;cursor:pointer;padding:11px 24px;
+    border:1px solid transparent;transition:transform .12s ease, border-color .2s ease;}
+  .btn-play{background:var(--accent);color:var(--accent-ink);}
+  .btn-play:hover{transform:translateY(-1px);}
+  .btn-reset{background:transparent;color:var(--ink);border-color:var(--line);}
+  .btn-reset:hover{border-color:var(--ink-soft);}
+  .btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px;}
+  .hint{margin-top:14px;color:var(--ink-soft);font-size:12.5px;text-align:center;max-width:40ch;}
+  .howto{margin-top:10px;max-width:48ch;font-size:12.5px;color:var(--ink-soft);}
+  .howto summary{cursor:pointer;font-weight:600;color:var(--ink);}
+  .howto summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+  .howto > div{margin-top:8px;line-height:1.55;}
+  .howto b{color:var(--ink);}
+
+  /* ---------- controls ---------- */
+  .panel{display:flex;flex-direction:column;gap:18px;}
+  .group{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 16px 18px;}
+  .group > h2{margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);}
+  .group > .sub{margin:0 0 14px;font-size:12.5px;color:var(--ink-soft);}
+  .field{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
+  .field:first-of-type{margin-top:0;}
+  .field label{font-size:13px;font-weight:500;}
+  .field input[type=text],.field textarea,.field select{font:inherit;font-size:14px;padding:9px 11px;
+    border:1px solid var(--line);border-radius:9px;background:var(--field);color:var(--ink);}
+  .field textarea{resize:vertical;min-height:52px;}
+  .field input[type=range]{width:100%;accent-color:var(--ink);}
+  .field input:focus-visible,.field textarea:focus-visible,.field select:focus-visible{outline:2px solid var(--focus);outline-offset:1px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .colorrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .colorrow input[type=color]{appearance:none;-webkit-appearance:none;width:46px;height:34px;border:1px solid var(--line);
+    border-radius:9px;background:none;cursor:pointer;padding:3px;}
+  .colorrow input[type=color]::-webkit-color-swatch{border:none;border-radius:6px;}
+  .colorrow small{font-size:12px;color:var(--ink-soft);}
+  .seg{display:inline-flex;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px;flex-wrap:wrap;}
+  .seg button{font:inherit;font-size:13px;font-weight:500;border:none;background:none;color:var(--ink-soft);padding:7px 13px;border-radius:8px;cursor:pointer;}
+  .seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  .seg button:focus-visible{outline:2px solid var(--focus);outline-offset:1px;}
+  .filebtn{display:inline-flex;align-items:center;gap:9px;font:inherit;font-size:13px;font-weight:500;
+    padding:9px 13px;border:1px dashed var(--line);border-radius:10px;background:var(--field);cursor:pointer;color:var(--ink);position:relative;}
+  .filebtn:hover{border-color:var(--ink-soft);}
+  .filebtn input{position:absolute;width:1px;height:1px;opacity:0;}
+  .filemeta{font-size:12px;color:var(--ink-soft);margin-top:7px;}
+  .linkbtn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:0;margin-top:7px;align-self:flex-start;}
+  .checkrow{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);margin-top:11px;cursor:pointer;}
+  .drawpad{position:relative;width:220px;max-width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:50%;overflow:hidden;
+    background:repeating-conic-gradient(#efece4 0% 25%, #fbfaf6 0% 50%) 50% / 20px 20px;}
+  .drawpad canvas{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;}
+  .drawtools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px;}
+  .drawtools input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer;padding:3px;appearance:none;-webkit-appearance:none;}
+  .drawtools .tool{font:inherit;font-size:12.5px;padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer;color:var(--ink);}
+  .drawtools .tool[aria-pressed="true"]{background:var(--ink);color:var(--accent-ink);border-color:var(--ink);}
+  .rangelbl{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);}
+  .rangelbl input{accent-color:var(--ink);}
+  .divider{height:1px;background:var(--line);margin:16px 0 4px;}
+  .mini{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin:2px 0 0;}
+  [hidden]{display:none !important;}
+  footer.foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:12.5px;line-height:1.5;}
+
+  @media (prefers-reduced-motion: reduce){
+    .play .card,.play .flap,.play .seal{animation:none !important;}
+    .play .card{transform:translate(-50%,-50%) translateY(-24%) scale(2.0);}
+    .play .flap{transform:rotateX(180deg);} .play .seal{opacity:0;}
+    .book,.leaf.cover{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="mark">Envelope<span class="v">3.0</span></div>
+    <div class="tag">Dress the envelope, build a real opening card, brand the back.</div>
+    <div class="topright">
+      <div class="savebar"><span id="saveState" class="savestate">Not saved yet</span>
+        <button id="exportBtn" type="button">Export</button>
+        <label class="impbtn">Import<input id="importInput" type="file" accept="application/json,.json"></label>
+        <button id="shareBtn" type="button">Card to send</button>
+        <button id="clearSaved" type="button">Clear saved</button></div>
+      <button id="presentBtn" class="presentbtn" type="button">Hide controls</button>
+    </div>
+  </header>
+
+  <div class="sendnote" id="sendNote" role="status" hidden>
+    <div class="sn-msg">Card downloaded as <b id="snFile">card.html</b>. Upload it to your repo as a new file — keep this exact name, and don't name it index.html.</div>
+    <div class="sn-base">
+      <label for="pagesBase">Your Pages address (set once):</label>
+      <input id="pagesBase" type="text" inputmode="url" autocomplete="off" placeholder="https://USERNAME.github.io/REPO/">
+    </div>
+    <div class="sn-link" id="snLinkRow" hidden>
+      <input id="cardLink" type="text" readonly>
+      <button id="copyLink" type="button">Copy link</button>
+    </div>
+    <button id="sendNoteClose" type="button" class="sn-done">Got it</button>
+  </div>
+
+  <div class="layout">
+    <!-- PREVIEW -->
+    <section class="preview" aria-label="Preview">
+      <p class="caption" id="caption">A card for someone</p>
+      <div class="stage-shell" id="shell">
+        <div class="stage" id="stage">
+          <div class="card" id="card">
+            <div class="face empty" id="sceneFace" data-empty="front cover"><div class="ptext" id="tFrontScene"></div></div>
+          </div>
+          <div class="envelope">
+            <div class="pocket" id="pocket"></div>
+            <div class="flap" id="flap"><div class="flapface" id="flapface"></div></div>
+            <div class="seal" id="seal">
+              <div class="disc" id="sealDisc"></div>
+              <img class="sealimg" id="sealImg" alt="" hidden>
+              <div class="label" id="sealLabel"><span id="sealL1">Happy</span><small id="sealL2">Birthday</small></div>
+            </div>
+          </div>
+          <button class="openCue" id="openCue" type="button"><span class="chev">&#8593;</span> Open the card</button>
+        </div>
+
+        <!-- openable card -->
+        <div class="reader" id="reader" aria-label="Opening card">
+          <div class="book" id="book">
+            <div class="leaf base">
+              <div class="rface front pos-bottom" id="fInsideRight"><div class="ptext" id="tInsideRight"></div>
+                <button class="corner" id="toBack" type="button" aria-label="Flip to the back of the card" hidden>&#10148;</button>
+              </div>
+              <div class="rface back pos-bottom" id="fBack"><div class="ptext" id="tBack"></div>
+                <button class="corner replay" id="toInside" type="button" aria-label="Reset to the beginning — press Play to watch again" hidden>&#10227;</button>
+              </div>
+            </div>
+            <div class="leaf cover" id="coverLeaf">
+              <div class="rface front pos-bottom" id="fFront"><div class="ptext" id="tFront"></div></div>
+              <div class="rface back pos-bottom" id="fInsideLeft"><div class="ptext" id="tInsideLeft"></div>
+                <button class="corner left flip" id="toCover" type="button" aria-label="Flip back to the cover" hidden>&#10148;</button>
+              </div>
+            </div>
+            <div class="spine"></div>
+          </div>
+          <div class="rnav" id="rnav"></div>
+        </div>
+
+        <div class="stage-actions">
+          <button class="btn btn-play" id="playBtn" type="button">Play</button>
+          <button class="btn btn-reset" id="resetBtn" type="button">Reset</button>
+        </div>
+        <p class="hint">Press Play to open the envelope, then tap to open the card.</p>
+        <details class="howto">
+          <summary>Save it as a video (for email or iMessage)</summary>
+          <div>
+            <b>iPhone / iPad:</b> add Screen Recording in Settings &rarr; Control Center. Open Control Center, tap the record circle, come back here and press Play. Stop from the red status bar — the video saves to Photos, ready to attach.<br><br>
+            <b>Mac:</b> press &#8679;&#8984;5, record the preview, then press Play.<br>
+            <b>Windows:</b> use Xbox Game Bar (&#8862;+G) or the Snipping Tool's record button.
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- CONTROLS -->
+    <section class="panel" aria-label="Design controls">
+      <div class="group">
+        <h2>Message</h2>
+        <div class="field"><label for="titleInput">Caption above the envelope</label>
+          <input id="titleInput" type="text" value="A card for someone" maxlength="60" autocomplete="off"></div>
+      </div>
+
+      <div class="group">
+        <h2>Envelope</h2>
+        <div class="field"><label for="envColor">Base color</label>
+          <div class="colorrow"><input id="envColor" type="color" value="#5BA6A8" aria-label="Envelope base color">
+            <small>used by both surfaces unless you add a picture</small></div></div>
+
+        <div class="divider"></div>
+        <p class="mini">Body (bottom)</p>
+        <div class="field"><label>Pattern</label>
+          <div class="seg" id="pocketSeg" role="group" aria-label="Body pattern">
+            <button type="button" data-p="dots" aria-pressed="true">Dots</button>
+            <button type="button" data-p="stripes" aria-pressed="false">Stripes</button>
+            <button type="button" data-p="grid" aria-pressed="false">Grid</button>
+            <button type="button" data-p="solid" aria-pressed="false">Solid</button>
+          </div></div>
+        <div class="field"><label for="pocketAccent">Pattern accent</label>
+          <div class="colorrow"><input id="pocketAccent" type="color" value="#F2EBDC" aria-label="Body pattern accent"></div></div>
+        <div class="field"><label>Or a picture</label>
+          <label class="filebtn">+ Body image<input id="pocketUpload" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
+          <div class="filemeta" id="pocketMeta">No picture.</div>
+          <button class="linkbtn" id="pocketClear" type="button" hidden>Remove picture</button></div>
+
+        <div class="divider"></div>
+        <p class="mini">Flap</p>
+        <div class="field"><label>Pattern</label>
+          <div class="seg" id="flapSeg" role="group" aria-label="Flap pattern">
+            <button type="button" data-p="stripes" aria-pressed="true">Stripes</button>
+            <button type="button" data-p="dots" aria-pressed="false">Dots</button>
+            <button type="button" data-p="grid" aria-pressed="false">Grid</button>
+            <button type="button" data-p="solid" aria-pressed="false">Solid</button>
+          </div></div>
+        <div class="field"><label for="flapAccent">Pattern accent</label>
+          <div class="colorrow"><input id="flapAccent" type="color" value="#F2EBDC" aria-label="Flap pattern accent"></div></div>
+        <div class="field"><label>Or a picture</label>
+          <label class="filebtn">+ Flap image<input id="flapUpload" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
+          <div class="filemeta" id="flapMeta">No picture.</div>
+          <button class="linkbtn" id="flapClear" type="button" hidden>Remove picture</button></div>
+      </div>
+
+      <div class="group">
+        <h2>Seal</h2>
+        <div class="field"><label>Style</label>
+          <div class="seg" id="sealSeg" role="group" aria-label="Seal style">
+            <button type="button" data-mode="text" aria-pressed="true">Wax + text</button>
+            <button type="button" data-mode="draw" aria-pressed="false">Draw</button>
+            <button type="button" data-mode="image" aria-pressed="false">Image</button>
+          </div></div>
+        <div class="field"><label for="sealSize">Size <span id="sealSizeVal" style="color:var(--ink-soft);font-weight:400">46%</span></label>
+          <input id="sealSize" type="range" min="26" max="74" value="46"></div>
+        <div class="field"><label for="sealPos">Vertical position <span style="color:var(--ink-soft);font-weight:400">(left raises · right lowers)</span></label>
+          <input id="sealPos" type="range" min="50" max="78" value="64"></div>
+
+        <div id="sealTextControls">
+          <div class="field"><label>Wax / text color</label>
+            <div class="colorrow"><input id="sealColor" type="color" value="#F0A988" aria-label="Wax color">
+              <input id="sealTextColor" type="color" value="#B45B3D" aria-label="Seal text color"></div></div>
+          <div class="row2">
+            <div class="field"><label for="sealLine1">Top line</label><input id="sealLine1" type="text" value="Happy" maxlength="16"></div>
+            <div class="field"><label for="sealLine2">Bottom line</label><input id="sealLine2" type="text" value="Birthday" maxlength="16"></div>
+          </div>
+        </div>
+
+        <div id="sealDrawControls" hidden>
+          <div class="field"><label>Sketch pad</label>
+            <div class="drawpad"><canvas id="drawCanvas" width="480" height="480" aria-label="Seal drawing area"></canvas></div>
+            <div class="drawtools">
+              <input id="brushColor" type="color" value="#B45B3D" aria-label="Brush color">
+              <label class="rangelbl">Size <input id="brushSize" type="range" min="2" max="48" value="16"></label>
+              <button class="tool" id="eraserBtn" type="button" aria-pressed="false">Eraser</button>
+              <button class="tool" id="undoBtn" type="button">Undo</button>
+              <button class="tool" id="clearBtn" type="button">Clear</button>
+            </div>
+            <label class="checkrow"><input id="backingToggle" type="checkbox"> Round wax backing</label>
+            <div class="field" style="margin-top:10px"><label for="drawWaxColor">Backing color</label>
+              <div class="colorrow"><input id="drawWaxColor" type="color" value="#F0A988"></div></div>
+          </div>
+        </div>
+
+        <div id="sealImageControls" hidden>
+          <div class="field"><label>Seal art <span style="color:var(--ink-soft);font-weight:400">(PNG, JPEG, or PDF)</span></label>
+            <label class="filebtn">+ Choose seal file<input id="sealUpload" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
+            <div class="filemeta" id="sealMeta">No file yet.</div>
+            <label class="checkrow"><input id="trimCircle" type="checkbox"> Trim to a circle (good for JPEGs)</label>
+            <button class="linkbtn" id="sealClear" type="button" hidden>Remove seal art</button></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Card</h2>
+        <p class="sub">Choose how many pages, then fill each slot. Every slot takes PNG, JPEG, or PDF from any app like Procreate.</p>
+
+        <div class="field"><label>Pages</label>
+          <div class="seg" id="pagesSeg" role="group" aria-label="Number of pages">
+            <button type="button" data-pages="full" aria-pressed="true">Folded card (opens)</button>
+            <button type="button" data-pages="one" aria-pressed="false">One page (cover only)</button>
+          </div></div>
+
+        <div class="field"><label>Card shape</label>
+          <div class="seg" id="shapeSeg" role="group" aria-label="Card shape">
+            <button type="button" data-s="portrait" aria-pressed="true">Portrait</button>
+            <button type="button" data-s="square" aria-pressed="false">Square</button>
+            <button type="button" data-s="landscape" aria-pressed="false">Landscape</button>
+          </div></div>
+        <div class="field"><label for="bookSize">Open card size <span id="bookSizeVal" style="color:var(--ink-soft);font-weight:400">100%</span></label>
+          <input id="bookSize" type="range" min="70" max="118" value="100"></div>
+        <div class="field"><label>Image fit</label>
+          <div class="seg" id="fitSeg" role="group" aria-label="Image fit">
+            <button type="button" data-f="cover" aria-pressed="true">Fill</button>
+            <button type="button" data-f="contain" aria-pressed="false">Fit / center</button>
+          </div></div>
+        <div class="divider"></div>
+
+        <p class="mini">Front cover</p>
+        <div class="field">
+          <label class="filebtn">+ Cover image<input id="frontUpload" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
+          <div class="filemeta" id="frontMeta">No file yet.</div>
+          <button class="linkbtn" id="frontClear" type="button" hidden>Remove</button></div>
+        <div class="field"><label for="frontText">Cover text (optional)</label><textarea id="frontText" maxlength="120"></textarea></div>
+
+        <div id="multiPageControls">
+        <div class="divider"></div>
+        <p class="mini">Inside spread</p>
+        <div class="field"><label>Layout</label>
+          <div class="seg" id="insideSeg" role="group" aria-label="Inside layout">
+            <button type="button" data-l="two" aria-pressed="true">Two pages</button>
+            <button type="button" data-l="cont" aria-pressed="false">One continuous image</button>
+          </div></div>
+
+        <div id="twoPageControls">
+          <p class="mini" style="margin-top:14px">Left page</p>
+          <div class="field"><label class="filebtn">+ Left image<input id="leftUpload" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
+            <div class="filemeta" id="leftMeta">No file yet.</div>
+            <button class="linkbtn" id="leftClear" type="button" hidden>Remove</button></div>
+          <div class="field"><label for="leftText">Left text (optional)</label><textarea id="leftText" maxlength="200"></textarea></div>
+          <p class="mini" style="margin-top:14px">Right page</p>
+          <div class="field"><label class="filebtn">+ Right image<input id="rightUpload" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
+            <div class="filemeta" id="rightMeta">No file yet.</div>
+            <button class="linkbtn" id="rightClear" type="button" hidden>Remove</button></div>
+          <div class="field"><label for="rightText">Right text (optional)</label><textarea id="rightText" maxlength="200"></textarea></div>
+        </div>
+
+        <div id="contControls" hidden>
+          <div class="field" style="margin-top:14px"><label class="filebtn">+ Spread image (spans both pages)<input id="spreadUpload" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
+            <div class="filemeta" id="spreadMeta">No file yet.</div>
+            <button class="linkbtn" id="spreadClear" type="button" hidden>Remove</button></div>
+          <p class="sub" style="margin-top:8px">Tip: design it at a wide 2:1 shape so the halves line up across the fold.</p>
+        </div>
+
+        <div class="divider"></div>
+        <p class="mini">Back of card (branding)</p>
+        <div class="field"><label class="filebtn">+ Back image<input id="backUpload" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
+          <div class="filemeta" id="backMeta">No file yet.</div>
+          <button class="linkbtn" id="backClear" type="button" hidden>Remove</button></div>
+        <div class="field"><label for="backText">Credit / signature (optional)</label><textarea id="backText" maxlength="160" placeholder="Made with love · yourbrand.com"></textarea></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="row2">
+          <div class="field"><label for="cardBg">Card background</label>
+            <div class="colorrow"><input id="cardBg" type="color" value="#F1E7D4"></div></div>
+          <div class="field"><label for="cardTextColor">Card text color</label>
+            <div class="colorrow"><input id="cardTextColor" type="color" value="#3A2F25"></div></div>
+        </div>
+        <div class="field"><label>Text position — pick a page, then a spot</label>
+          <div class="seg" id="posPageSeg" role="group" aria-label="Which page to position">
+            <button type="button" data-pg="front" aria-pressed="true">Cover</button>
+            <button type="button" data-pg="left" aria-pressed="false">Left</button>
+            <button type="button" data-pg="right" aria-pressed="false">Right</button>
+            <button type="button" data-pg="back" aria-pressed="false">Back</button>
+          </div>
+          <div class="posgrid" id="posGrid" role="group" aria-label="Position on page">
+            <button type="button" data-v="top" data-h="left"></button>
+            <button type="button" data-v="top" data-h="center"></button>
+            <button type="button" data-v="top" data-h="right"></button>
+            <button type="button" data-v="middle" data-h="left"></button>
+            <button type="button" data-v="middle" data-h="center"></button>
+            <button type="button" data-v="middle" data-h="right"></button>
+            <button type="button" data-v="bottom" data-h="left"></button>
+            <button type="button" data-v="bottom" data-h="center"></button>
+            <button type="button" data-v="bottom" data-h="right"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="foot">
+    Everything stays in your browser — images aren't uploaded anywhere, and nothing is saved between visits, so finish in one sitting.
+    PDF import and web fonts need a connection; everything else works offline.
+  </footer>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  if(typeof pdfjsLib !== 'undefined'){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  /* ---------- shared art import (image / PDF) ---------- */
+  function importArt(file, cb){
+    if(!file) return;
+    if(file.type === 'application/pdf'){
+      if(typeof pdfjsLib === 'undefined'){ cb(null, 'PDF needs a connection — try PNG/JPEG'); return; }
+      const r = new FileReader();
+      r.onload = () => {
+        pdfjsLib.getDocument({data:r.result}).promise
+          .then(pdf => pdf.getPage(1))
+          .then(page => {
+            const vp = page.getViewport({scale:2});
+            const cv = document.createElement('canvas'); cv.width=vp.width; cv.height=vp.height;
+            return page.render({canvasContext:cv.getContext('2d'), viewport:vp}).promise
+              .then(()=> cb(cv.toDataURL('image/png')));
+          })
+          .catch(()=> cb(null, 'Could not read that PDF'));
+      };
+      r.readAsArrayBuffer(file);
+    } else {
+      const r = new FileReader(); r.onload = ()=> cb(r.result); r.readAsDataURL(file);
+    }
+  }
+  // wire a simple image slot: input -> applyFn(dataURL|null)
+  function wireSlot(inputId, metaId, clearId, applyFn){
+    const inp=$(inputId), meta=$(metaId), clr=$(clearId);
+    inp.addEventListener('change', e=>{
+      const f=e.target.files[0]; if(!f) return;
+      meta.textContent='Loading…';
+      importArt(f,(data,err)=>{
+        if(!data){ meta.textContent = err||'Could not read file'; return; }
+        applyFn(data); meta.textContent=f.name; if(clr) clr.hidden=false;
+      });
+    });
+    if(clr) clr.addEventListener('click', ()=>{ applyFn(null); meta.textContent='No file yet.'; clr.hidden=true; inp.value=''; });
+  }
+  function setFace(el, data){ el.style.backgroundImage = data ? `url(${data})` : ''; el.classList.toggle('empty', !data);
+    el.style.backgroundSize = fitMode; el.style.backgroundPosition = 'center'; }
+
+  /* ---------- caption ---------- */
+  $('titleInput').addEventListener('input', e => $('caption').textContent = e.target.value || '\u00A0');
+
+  /* ---------- envelope surfaces ---------- */
+  const pocketState = {p:'dots', accent:'#F2EBDC', img:null};
+  const flapState   = {p:'stripes', accent:'#F2EBDC', img:null};
+  function patternCSS(type, base, accent){
+    if(type==='solid')   return base;
+    if(type==='dots')    return `radial-gradient(circle, ${accent} 2.4px, transparent 3.1px) 8px 9px / 30px 30px, ${base}`;
+    if(type==='stripes') return `repeating-linear-gradient(90deg, ${base} 0 6px, ${accent} 6px 9px)`;
+    if(type==='grid')    return `linear-gradient(${accent} 1px, transparent 1px) 0 0/22px 22px, linear-gradient(90deg, ${accent} 1px, transparent 1px) 0 0/22px 22px, ${base}`;
+    return base;
+  }
+  function envBase(){ return getComputedStyle(document.documentElement).getPropertyValue('--env').trim() || '#5BA6A8'; }
+  function renderPocket(){
+    const el=$('pocket');
+    if(pocketState.img){ el.style.background=`url(${pocketState.img}) center/cover no-repeat`; }
+    else { el.style.background = patternCSS(pocketState.p, envBase(), pocketState.accent); }
+  }
+  function renderFlap(){
+    const el=$('flapface');
+    if(flapState.img){ el.style.background=`url(${flapState.img}) center/cover no-repeat`; }
+    else { el.style.background = patternCSS(flapState.p, envBase(), flapState.accent); }
+  }
+  function renderEnvelope(){ renderPocket(); renderFlap(); }
+
+  $('envColor').addEventListener('input', e=>{ document.documentElement.style.setProperty('--env', e.target.value); renderEnvelope(); });
+  function wireSeg(segId, onPick){
+    const seg=$(segId);
+    seg.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{
+      seg.querySelectorAll('button').forEach(x=> x.setAttribute('aria-pressed', String(x===b)));
+      onPick(b.dataset.p || b.dataset.mode || b.dataset.l || b.dataset.s || b.dataset.f || b.dataset.pages);
+    }));
+  }
+  wireSeg('pocketSeg', v=>{ pocketState.p=v; renderPocket(); });
+  wireSeg('flapSeg',   v=>{ flapState.p=v;   renderFlap();   });
+  $('pocketAccent').addEventListener('input', e=>{ pocketState.accent=e.target.value; renderPocket(); });
+  $('flapAccent').addEventListener('input',   e=>{ flapState.accent=e.target.value;   renderFlap();   });
+  wireSlot('pocketUpload','pocketMeta','pocketClear', d=>{ pocketState.img=d; renderPocket(); saveSoon(); });
+  wireSlot('flapUpload','flapMeta','flapClear',       d=>{ flapState.img=d;   renderFlap();   saveSoon(); });
+
+  /* ---------- seal ---------- */
+  let currentMode='text', uploadedSealSrc=null, drawnSealSrc=null, uploadedSealRaw=null;
+  const sealSeg=$('sealSeg');
+  function applySeal(){
+    const disc=$('sealDisc'), img=$('sealImg'), label=$('sealLabel');
+    let src=null;
+    if(currentMode==='image') src=uploadedSealSrc;
+    else if(currentMode==='draw') src=drawnSealSrc;
+    if(currentMode==='text'){ disc.hidden=false; label.hidden=false; img.hidden=true; img.removeAttribute('src'); }
+    else if(src){ img.src=src; img.hidden=false; disc.hidden=true; label.hidden=true; }
+    else { img.hidden=true; img.removeAttribute('src'); disc.hidden=false; label.hidden=true; }
+  }
+  function setSealMode(mode){
+    currentMode=mode;
+    sealSeg.querySelectorAll('button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.mode===mode)));
+    $('sealTextControls').hidden = mode!=='text';
+    $('sealDrawControls').hidden = mode!=='draw';
+    $('sealImageControls').hidden = mode!=='image';
+    applySeal();
+  }
+  sealSeg.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=> setSealMode(b.dataset.mode)));
+  $('sealColor').addEventListener('input', e=> document.documentElement.style.setProperty('--seal', e.target.value));
+  $('sealTextColor').addEventListener('input', e=> document.documentElement.style.setProperty('--seal-text', e.target.value));
+  $('sealLine1').addEventListener('input', e=> $('sealL1').textContent=e.target.value);
+  $('sealLine2').addEventListener('input', e=> $('sealL2').textContent=e.target.value);
+  $('sealSize').addEventListener('input', e=>{ document.documentElement.style.setProperty('--seal-size', e.target.value+'%'); $('sealSizeVal').textContent=e.target.value+'%'; });
+  $('sealPos').addEventListener('input', e=> document.documentElement.style.setProperty('--seal-top', e.target.value+'%'));
+
+  /* drawing */
+  const dc=$('drawCanvas'), dctx=dc.getContext('2d');
+  dctx.lineCap='round'; dctx.lineJoin='round';
+  let drawing=false, erasing=false, last=null; const undoStack=[];
+  function pushUndo(){ try{ undoStack.push(dctx.getImageData(0,0,dc.width,dc.height)); if(undoStack.length>25) undoStack.shift(); }catch(_){} }
+  function posFromEvent(ev){ const r=dc.getBoundingClientRect(); return {x:(ev.clientX-r.left)*(dc.width/r.width), y:(ev.clientY-r.top)*(dc.height/r.height)}; }
+  function strokeTo(p){ dctx.globalCompositeOperation=erasing?'destination-out':'source-over'; dctx.strokeStyle=$('brushColor').value; dctx.lineWidth=parseInt($('brushSize').value,10); dctx.beginPath(); dctx.moveTo(last.x,last.y); dctx.lineTo(p.x,p.y); dctx.stroke(); last=p; }
+  dc.addEventListener('pointerdown', ev=>{ ev.preventDefault(); pushUndo(); drawing=true; last=posFromEvent(ev);
+    dctx.globalCompositeOperation=erasing?'destination-out':'source-over'; dctx.fillStyle=$('brushColor').value;
+    dctx.beginPath(); dctx.arc(last.x,last.y,parseInt($('brushSize').value,10)/2,0,Math.PI*2); dctx.fill(); dc.setPointerCapture(ev.pointerId); });
+  dc.addEventListener('pointermove', ev=>{ if(drawing) strokeTo(posFromEvent(ev)); });
+  function endStroke(){ if(!drawing) return; drawing=false; exportDrawing(); }
+  dc.addEventListener('pointerup', endStroke); dc.addEventListener('pointercancel', endStroke); dc.addEventListener('pointerleave', endStroke);
+  $('eraserBtn').addEventListener('click', ()=>{ erasing=!erasing; $('eraserBtn').setAttribute('aria-pressed', String(erasing)); });
+  $('undoBtn').addEventListener('click', ()=>{ const p=undoStack.pop(); if(p){ dctx.putImageData(p,0,0); exportDrawing(); } });
+  $('clearBtn').addEventListener('click', ()=>{ pushUndo(); dctx.clearRect(0,0,dc.width,dc.height); exportDrawing(); });
+  $('backingToggle').addEventListener('change', exportDrawing);
+  $('drawWaxColor').addEventListener('input', ()=>{ if($('backingToggle').checked) exportDrawing(); });
+  function exportDrawing(){
+    const out=document.createElement('canvas'); out.width=dc.width; out.height=dc.height;
+    const o=out.getContext('2d'), cx=dc.width/2, cy=dc.height/2, r=dc.width/2;
+    o.save(); o.beginPath(); o.arc(cx,cy,r,0,Math.PI*2); o.clip();
+    if($('backingToggle').checked){ o.fillStyle=$('drawWaxColor').value; o.beginPath(); o.arc(cx,cy,r,0,Math.PI*2); o.fill(); }
+    o.drawImage(dc,0,0); o.restore();
+    const px=o.getImageData(0,0,out.width,out.height).data; let ink=false;
+    for(let i=3;i<px.length;i+=4){ if(px[i]>0){ ink=true; break; } }
+    drawnSealSrc = ink ? out.toDataURL('image/png') : null;
+    if(currentMode==='draw') applySeal();
+    saveSoon();
+  }
+  /* seal import */
+  function circleCrop(dataURL, cb){
+    const im=new Image();
+    im.onload=()=>{ const S=512, cv=document.createElement('canvas'); cv.width=S; cv.height=S; const c=cv.getContext('2d');
+      c.save(); c.beginPath(); c.arc(S/2,S/2,S/2,0,Math.PI*2); c.clip();
+      const sc=Math.max(S/im.width,S/im.height), w=im.width*sc, h=im.height*sc;
+      c.drawImage(im,(S-w)/2,(S-h)/2,w,h); c.restore(); cb(cv.toDataURL('image/png')); };
+    im.src=dataURL;
+  }
+  function refineSeal(){
+    if(!uploadedSealRaw){ uploadedSealSrc=null; applySeal(); return; }
+    if($('trimCircle').checked) circleCrop(uploadedSealRaw, d=>{ uploadedSealSrc=d; if(currentMode==='image') applySeal(); });
+    else { uploadedSealSrc=uploadedSealRaw; if(currentMode==='image') applySeal(); }
+  }
+  $('sealUpload').addEventListener('change', e=>{ const f=e.target.files[0]; if(!f) return; $('sealMeta').textContent='Loading…';
+    importArt(f,(data,err)=>{ if(!data){ $('sealMeta').textContent=err||'Could not read file'; return; } uploadedSealRaw=data; $('sealMeta').textContent=f.name; $('sealClear').hidden=false; setSealMode('image'); refineSeal(); saveSoon(); }); });
+  $('trimCircle').addEventListener('change', refineSeal);
+  $('sealClear').addEventListener('click', ()=>{ uploadedSealRaw=null; uploadedSealSrc=null; $('sealMeta').textContent='No file yet.'; $('sealClear').hidden=true; $('sealUpload').value=''; applySeal(); });
+
+  /* ---------- card content ---------- */
+  let insideMode='two', leftImg=null, rightImg=null, spreadImg=null, frontImg=null, backImg=null, fitMode='cover', cardType='full';
+  function renderInside(){
+    const L=$('fInsideLeft'), R=$('fInsideRight');
+    if(insideMode==='cont' && spreadImg){
+      [L,R].forEach(el=>{ el.style.backgroundImage=`url(${spreadImg})`; el.style.backgroundSize='200% 100%'; el.classList.remove('empty'); });
+      L.style.backgroundPosition='left center'; R.style.backgroundPosition='right center';
+    } else {
+      setFace(L, leftImg); setFace(R, rightImg);
+    }
+    saveSoon();
+  }
+  function refreshCoverEmpty(){ const has=(($('frontText').value||'').trim().length>0)||!!frontImg; $('sceneFace').classList.toggle('empty', !has); }
+  function applyFit(){ setFace($('sceneFace'), frontImg); setFace($('fFront'), frontImg); setFace($('fBack'), backImg); renderInside(); refreshCoverEmpty(); }
+  // front cover (mirrors to scene + reader)
+  wireSlot('frontUpload','frontMeta','frontClear', d=>{ frontImg=d; setFace($('sceneFace'), d); setFace($('fFront'), d); refreshCoverEmpty(); saveSoon(); });
+  wireSlot('leftUpload','leftMeta','leftClear', d=>{ leftImg=d; renderInside(); });
+  wireSlot('rightUpload','rightMeta','rightClear', d=>{ rightImg=d; renderInside(); });
+  wireSlot('spreadUpload','spreadMeta','spreadClear', d=>{ spreadImg=d; renderInside(); });
+  wireSlot('backUpload','backMeta','backClear', d=>{ backImg=d; setFace($('fBack'), d); saveSoon(); });
+
+  $('frontText').addEventListener('input', e=>{ $('tFront').textContent=e.target.value; $('tFrontScene').textContent=e.target.value; refreshCoverEmpty(); });
+  $('leftText').addEventListener('input', e=>{ $('tInsideLeft').textContent=e.target.value; });
+  $('rightText').addEventListener('input', e=>{ $('tInsideRight').textContent=e.target.value; });
+  $('backText').addEventListener('input', e=>{ $('tBack').textContent=e.target.value; });
+
+  wireSeg('insideSeg', v=>{ insideMode=v; $('twoPageControls').hidden=(v!=='two'); $('contControls').hidden=(v!=='cont'); renderInside(); });
+  wireSeg('fitSeg', v=>{ fitMode=v; applyFit(); });
+  function setCardType(v){
+    cardType=v;
+    $('multiPageControls').hidden = (v==='one');
+    if(v==='one'){
+      reader.classList.remove('show'); book.classList.remove('open','flipped'); shell.classList.remove('reading');
+      stage.classList.remove('gone'); readerState='cover'; setReady(false);
+    }
+    saveSoon();
+  }
+  wireSeg('pagesSeg', v=> setCardType(v));
+
+  /* card shape (drives scene card + reader pages) */
+  const SHAPES={ portrait:5/7, square:1, landscape:7/5 };
+  let cardRatio=SHAPES.portrait;
+  function applyShape(name){
+    cardRatio=SHAPES[name]||SHAPES.portrait;
+    document.documentElement.style.setProperty('--card-aspect', String(cardRatio));
+    if(reader.classList.contains('show')) sizeBook();
+  }
+  wireSeg('shapeSeg', v=> applyShape(v));
+
+  $('cardTextColor').addEventListener('input', e=> document.documentElement.style.setProperty('--card-text', e.target.value));
+  $('cardBg').addEventListener('input', e=> document.documentElement.style.setProperty('--card-bg', e.target.value));
+
+  /* per-page text position */
+  const facePos={ front:{h:'center',v:'bottom'}, left:{h:'center',v:'bottom'}, right:{h:'center',v:'bottom'}, back:{h:'center',v:'bottom'} };
+  const PAGE_FACE={ front:['sceneFace','fFront'], left:['fInsideLeft'], right:['fInsideRight'], back:['fBack'] };
+  const VMAP={top:'flex-start',middle:'center',bottom:'flex-end'};
+  const HMAP={left:'flex-start',center:'center',right:'flex-end'};
+  function applyPos(pg){
+    const {h,v}=facePos[pg];
+    PAGE_FACE[pg].forEach(id=>{
+      const el=$(id); el.style.alignItems=VMAP[v]; el.style.justifyContent=HMAP[h];
+      const t=el.querySelector('.ptext'); if(t) t.style.textAlign=h;
+    });
+  }
+  let posPage='front';
+  function refreshGrid(){
+    const {h,v}=facePos[posPage];
+    $('posGrid').querySelectorAll('button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.h===h && b.dataset.v===v)));
+  }
+  $('posPageSeg').querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{
+    $('posPageSeg').querySelectorAll('button').forEach(x=> x.setAttribute('aria-pressed', String(x===b)));
+    posPage=b.dataset.pg; refreshGrid();
+  }));
+  $('posGrid').querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{
+    facePos[posPage]={h:b.dataset.h, v:b.dataset.v}; applyPos(posPage); refreshGrid();
+  }));
+  ['front','left','right','back'].forEach(applyPos); refreshGrid();
+
+  /* ---------- reader (open/close/flip) ---------- */
+  const stage=$('stage'), card=$('card'), reader=$('reader'), book=$('book'), rnav=$('rnav'), openCue=$('openCue'), shell=$('shell');
+  let zTimer=null, playTimer=null, arrowTimer=null, flipTimer=null, readerState='cover', cardReady=false, bookScale=1;
+  const FLIP_MS = 820;
+
+  function sizeBook(){
+    const r=reader.getBoundingClientRect();
+    if(!r.width) return;
+    let ph=Math.min(r.height*0.92, (r.width*0.97)/(2*cardRatio)) * bookScale;
+    let pw=ph*cardRatio;
+    reader.style.setProperty('--pw', pw+'px');
+    reader.style.setProperty('--ph', ph+'px');
+  }
+  $('bookSize').addEventListener('input', e=>{ bookScale=parseInt(e.target.value,10)/100; $('bookSizeVal').textContent=e.target.value+'%'; if(reader.classList.contains('show')) sizeBook(); });
+  window.addEventListener('resize', ()=>{ if(reader.classList.contains('show')) sizeBook(); });
+
+  function updateNav(){
+    let html='';
+    if(readerState==='cover'){ html='<button class="primary" data-a="open">Open the card &#10148;</button><button data-a="exit">&#8635; Envelope</button>'; }
+    else if(readerState==='spread'){ html='<button data-a="exit">&#8635; Envelope</button>'; }
+    else if(readerState==='back'){ html='<button data-a="inside">&#10094; Inside</button><button data-a="exit">&#8635; Envelope</button>'; }
+    rnav.innerHTML=html;
+    rnav.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=> readerAction(b.dataset.a)));
+    $('toCover').hidden = readerState!=='spread';
+    $('toBack').hidden = readerState!=='spread';
+    $('toInside').hidden = readerState!=='back';
+  }
+  function readerAction(a){
+    clearTimeout(flipTimer);
+    if(a==='open'){ book.classList.add('open'); readerState='spread'; updateNav(); }
+    else if(a==='close'){ book.classList.remove('open'); readerState='cover'; updateNav(); }
+    else if(a==='back'){
+      // close the open card, then flip it over to the back
+      book.classList.remove('open');
+      readerState='turning'; updateNav();
+      flipTimer=setTimeout(()=>{ book.classList.add('flipped'); readerState='back'; updateNav(); }, FLIP_MS);
+    }
+    else if(a==='inside'){
+      // unflip to the front, then swing open to the spread
+      book.classList.remove('flipped');
+      readerState='turning'; updateNav();
+      flipTimer=setTimeout(()=>{ book.classList.add('open'); readerState='spread'; updateNav(); }, FLIP_MS);
+    }
+    else if(a==='exit'){ exitReader(); }
+  }
+  function enterReader(){
+    if(!cardReady) return;
+    openCue.classList.remove('show');
+    stage.classList.add('gone');
+    setTimeout(()=>{
+      shell.classList.add('reading');
+      reader.classList.add('show'); sizeBook();
+      book.classList.remove('open','flipped');
+      readerState='cover'; updateNav();
+      setTimeout(()=>{ if(readerState==='cover'){ book.classList.add('open'); readerState='spread'; updateNav(); } }, 340);
+    }, 450);
+  }
+  function exitReader(){
+    clearTimeout(flipTimer);
+    reader.classList.remove('show'); book.classList.remove('open','flipped');
+    shell.classList.remove('reading');
+    stage.classList.remove('gone');
+    openCue.classList.add('show');
+  }
+  openCue.addEventListener('click', enterReader);
+  card.addEventListener('click', ()=>{ if(cardReady) enterReader(); });
+  $('toCover').addEventListener('click', ()=> readerAction('close'));
+  $('toBack').addEventListener('click', ()=> readerAction('back'));
+  $('toInside').addEventListener('click', ()=> reset());
+
+  /* ---------- play / reset ---------- */
+  function setReady(on){
+    cardReady=on;
+    card.classList.toggle('ready', on);
+    openCue.classList.toggle('show', on);
+  }
+  function reset(){
+    clearTimeout(zTimer); clearTimeout(playTimer); clearTimeout(arrowTimer); clearTimeout(flipTimer);
+    stage.classList.remove('play','gone'); card.style.zIndex='20';
+    setReady(false);
+    shell.classList.remove('reading');
+    reader.classList.remove('show'); book.classList.remove('open','flipped');
+    void stage.offsetWidth;
+  }
+  function play(){
+    reset();
+    playTimer=setTimeout(()=>{
+      stage.classList.add('play');
+      zTimer=setTimeout(()=>{ card.style.zIndex='60'; }, 6000);
+      arrowTimer=setTimeout(()=>{ if(cardType==='full') setReady(true); }, 8300);
+    }, 20);
+  }
+  $('playBtn').addEventListener('click', play);
+  $('resetBtn').addEventListener('click', reset);
+
+  /* ---------- persistence ---------- */
+  const SAVE_KEY='envelope2_card_v2';
+  let storageOK=true, saveTimer=null;
+  function flashSaved(m){ const el=$('saveState'); if(el) el.textContent=m; }
+  function setSegActive(segId, attr, val){ const s=$(segId); if(s) s.querySelectorAll('button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset[attr]===val))); }
+  function shapeName(){ for(const k in SHAPES){ if(SHAPES[k]===cardRatio) return k; } return 'portrait'; }
+
+  function collectState(){
+    return {
+      caption:$('titleInput').value, env:$('envColor').value,
+      pocket:pocketState, flap:flapState,
+      seal:{ mode:currentMode, size:$('sealSize').value, pos:$('sealPos').value, color:$('sealColor').value,
+        textColor:$('sealTextColor').value, l1:$('sealLine1').value, l2:$('sealLine2').value,
+        raw:uploadedSealRaw, trim:$('trimCircle').checked, drawn:drawnSealSrc,
+        drawWax:$('drawWaxColor').value, backing:$('backingToggle').checked },
+      card:{ shape:shapeName(), size:$('bookSize').value, inside:insideMode, fit:fitMode, pages:cardType,
+        front:frontImg, left:leftImg, right:rightImg, spread:spreadImg, back:backImg,
+        frontText:$('frontText').value, leftText:$('leftText').value, rightText:$('rightText').value, backText:$('backText').value,
+        textColor:$('cardTextColor').value, bg:$('cardBg').value, pos:facePos }
+    };
+  }
+  function sv(id,v){ if(v!=null && $(id)) $(id).value=v; }
+  function applyState(s){
+    if(!s) return;
+    try{
+      sv('titleInput', s.caption); $('caption').textContent = s.caption || '\u00A0';
+      if(s.env){ $('envColor').value=s.env; document.documentElement.style.setProperty('--env', s.env); }
+      if(s.pocket){ Object.assign(pocketState, s.pocket); $('pocketAccent').value=pocketState.accent; setSegActive('pocketSeg','p',pocketState.p);
+        if(pocketState.img){ $('pocketMeta').textContent='Saved picture'; $('pocketClear').hidden=false; } }
+      if(s.flap){ Object.assign(flapState, s.flap); $('flapAccent').value=flapState.accent; setSegActive('flapSeg','p',flapState.p);
+        if(flapState.img){ $('flapMeta').textContent='Saved picture'; $('flapClear').hidden=false; } }
+      renderEnvelope();
+      const z=s.seal||{};
+      if(z.size){ $('sealSize').value=z.size; document.documentElement.style.setProperty('--seal-size', z.size+'%'); $('sealSizeVal').textContent=z.size+'%'; }
+      if(z.pos){ $('sealPos').value=z.pos; document.documentElement.style.setProperty('--seal-top', z.pos+'%'); }
+      if(z.color){ $('sealColor').value=z.color; document.documentElement.style.setProperty('--seal', z.color); }
+      if(z.textColor){ $('sealTextColor').value=z.textColor; document.documentElement.style.setProperty('--seal-text', z.textColor); }
+      sv('sealLine1', z.l1); $('sealL1').textContent = z.l1!=null?z.l1:'Happy';
+      sv('sealLine2', z.l2); $('sealL2').textContent = z.l2!=null?z.l2:'Birthday';
+      uploadedSealRaw=z.raw||null; $('trimCircle').checked=!!z.trim; drawnSealSrc=z.drawn||null;
+      if(z.drawWax) $('drawWaxColor').value=z.drawWax; $('backingToggle').checked=!!z.backing;
+      if(z.drawn){ const im=new Image(); im.onload=()=>{ dctx.drawImage(im,0,0,dc.width,dc.height); }; im.src=z.drawn; }
+      if(uploadedSealRaw){ $('sealMeta').textContent='Saved image'; $('sealClear').hidden=false; refineSeal(); }
+      setSealMode(z.mode||'text');
+
+      const c=s.card||{};
+      if(c.shape){ setSegActive('shapeSeg','s',c.shape); applyShape(c.shape); }
+      if(c.size){ $('bookSize').value=c.size; bookScale=parseInt(c.size,10)/100; $('bookSizeVal').textContent=c.size+'%'; }
+      insideMode=c.inside||'two'; setSegActive('insideSeg','l',insideMode);
+      $('twoPageControls').hidden=(insideMode!=='two'); $('contControls').hidden=(insideMode!=='cont');
+      fitMode=c.fit||'cover'; setSegActive('fitSeg','f',fitMode);
+      if(c.pages){ setSegActive('pagesSeg','pages',c.pages); setCardType(c.pages); }
+      frontImg=c.front||null; leftImg=c.left||null; rightImg=c.right||null; spreadImg=c.spread||null; backImg=c.back||null;
+      sv('frontText', c.frontText); $('tFront').textContent=c.frontText||''; $('tFrontScene').textContent=c.frontText||'';
+      sv('leftText', c.leftText); $('tInsideLeft').textContent=c.leftText||'';
+      sv('rightText', c.rightText); $('tInsideRight').textContent=c.rightText||'';
+      sv('backText', c.backText); $('tBack').textContent=c.backText||'';
+      if(c.textColor){ $('cardTextColor').value=c.textColor; document.documentElement.style.setProperty('--card-text', c.textColor); }
+      if(c.bg){ $('cardBg').value=c.bg; document.documentElement.style.setProperty('--card-bg', c.bg); }
+      if(c.pos){ Object.assign(facePos, c.pos); ['front','left','right','back'].forEach(applyPos); refreshGrid(); }
+      if(frontImg){ $('frontMeta').textContent='Saved image'; $('frontClear').hidden=false; }
+      if(leftImg){ $('leftMeta').textContent='Saved image'; $('leftClear').hidden=false; }
+      if(rightImg){ $('rightMeta').textContent='Saved image'; $('rightClear').hidden=false; }
+      if(spreadImg){ $('spreadMeta').textContent='Saved image'; $('spreadClear').hidden=false; }
+      if(backImg){ $('backMeta').textContent='Saved image'; $('backClear').hidden=false; }
+      applyFit();
+    }catch(err){ console.warn('restore issue', err); }
+  }
+  function doSave(){
+    try{ localStorage.setItem(SAVE_KEY, JSON.stringify(collectState())); flashSaved('Saved \u2713 (until you clear)'); }
+    catch(e){ storageOK=false; flashSaved('Couldn\u2019t save here — run the file on your device'); }
+  }
+  function saveSoon(){ if(!storageOK) return; clearTimeout(saveTimer); saveTimer=setTimeout(doSave, 600); }
+  function loadSaved(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(raw){ applyState(JSON.parse(raw)); return true; } }catch(e){} return false; }
+
+  /* ---------- init ---------- */
+  renderEnvelope();
+  applyFit();
+  const panelEl=document.querySelector('.panel');
+  ['input','change'].forEach(ev=> panelEl.addEventListener(ev, saveSoon));
+  panelEl.addEventListener('click', e=>{ if(e.target.closest('button')) saveSoon(); });
+  $('presentBtn').addEventListener('click', ()=>{
+    const on=document.body.classList.toggle('presenting');
+    $('presentBtn').textContent = on ? 'Show controls' : 'Hide controls';
+    if(reader.classList.contains('show')) sizeBook();
+  });
+  $('clearSaved').addEventListener('click', ()=>{ try{ localStorage.removeItem(SAVE_KEY); }catch(_){} location.reload(); });
+  function downloadText(filename, text){
+    const blob=new Blob([text],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+  }
+  function downloadFile(filename, text, type){
+    const blob=new Blob([text],{type:type||'text/plain'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+  }
+  function safeName(){ return (($('titleInput').value||'card').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').slice(0,40))||'card'; }
+  let lastCardFile='';
+  $('exportBtn').addEventListener('click', ()=>{
+    downloadText('envelope-design-'+safeName()+'.json', JSON.stringify(collectState()));
+    flashSaved('Design exported');
+  });
+  $('shareBtn').addEventListener('click', async ()=>{
+    flashSaved('Building card to send\u2026');
+    let src;
+    try{ const r=await fetch(location.href, {cache:'no-store'}); src=await r.text(); }
+    catch(e){ flashSaved('Open your hosted link first, then try again'); return; }
+    const ttl=($('titleInput').value||'A card for you').replace(/[<>"]/g,'').slice(0,80);
+    src = src.replace(/<title>[\s\S]*?<\/title>/i, '<title>'+ttl+'</title>');
+    const data=JSON.stringify(collectState()).replace(/<\//g,'<\\/');
+    const meta='<meta property="og:title" content="'+ttl+'">'
+             +'<meta property="og:description" content="A card for you \u2014 tap to open.">'
+             +'<meta name="twitter:card" content="summary">';
+    const inject=meta+'<script>window.__CARD__='+data+';window.__VIEWONLY__=true;<\/script>\n';
+    src = src.indexOf('</head>')>-1 ? src.replace('</head>', inject+'</head>') : inject+src;
+    lastCardFile='card-'+safeName()+'.html';
+    downloadFile(lastCardFile, src, 'text/html');
+    flashSaved('Card to send downloaded \u2713');
+    $('snFile').textContent=lastCardFile;
+    updateCardLink();
+    $('sendNote').hidden=false;
+  });
+  $('sendNoteClose').addEventListener('click', ()=>{ $('sendNote').hidden=true; });
+  const PAGES_KEY='envelope2_pagesbase';
+  function normBase(b){ b=(b||'').trim(); if(b && !b.endsWith('/')) b+='/'; return b; }
+  function updateCardLink(){
+    const base=normBase($('pagesBase').value);
+    if(base && lastCardFile){ $('cardLink').value=base+lastCardFile; $('snLinkRow').hidden=false; }
+    else { $('snLinkRow').hidden=true; }
+  }
+  $('pagesBase').addEventListener('input', ()=>{ try{ localStorage.setItem(PAGES_KEY,$('pagesBase').value); }catch(_){} updateCardLink(); });
+  try{ const pb=localStorage.getItem(PAGES_KEY); if(pb) $('pagesBase').value=pb; }catch(_){}
+  $('copyLink').addEventListener('click', async ()=>{
+    const v=$('cardLink').value;
+    try{ await navigator.clipboard.writeText(v); flashSaved('Link copied \u2713'); }
+    catch(_){ $('cardLink').focus(); $('cardLink').select(); try{ document.execCommand('copy'); flashSaved('Link copied \u2713'); }catch(e){ flashSaved('Tap the link, then Copy'); } }
+  });
+  $('importInput').addEventListener('change', e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{ try{ applyState(JSON.parse(r.result)); saveSoon(); flashSaved('Design loaded'); }
+                   catch(_){ flashSaved('That file could not be read'); } };
+    r.readAsText(f); e.target.value='';
+  });
+  if(window.__CARD__){
+    storageOK=false;
+    try{ applyState(window.__CARD__); }catch(e){}
+    document.body.classList.add('presenting','viewonly');
+  }
+  else if(loadSaved()){ flashSaved('Restored your saved card'); }
+  else { try{ localStorage.setItem(SAVE_KEY+'_t','1'); localStorage.removeItem(SAVE_KEY+'_t'); flashSaved('Saving is on'); }
+         catch(e){ storageOK=false; flashSaved('Saving unavailable in this preview'); } }
+</script>
+</body>
+</html>
