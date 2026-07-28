@@ -981,15 +981,14 @@
   }
   function safeName(){ return (($('titleInput').value||'card').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').slice(0,40))||'card'; }
   let lastCardFile='';
+  let selfSource=null;
+  try{ fetch(location.href, {cache:'no-store'}).then(r=>r.text()).then(t=>{ selfSource=t; }).catch(()=>{}); }catch(_){}
   $('exportBtn').addEventListener('click', ()=>{
     downloadText('envelope-design-'+safeName()+'.json', JSON.stringify(collectState()));
     flashSaved('Design exported');
   });
-  $('shareBtn').addEventListener('click', async ()=>{
-    flashSaved('Building card to send\u2026');
-    let src;
-    try{ const r=await fetch(location.href, {cache:'no-store'}); src=await r.text(); }
-    catch(e){ flashSaved('Open your hosted link first, then try again'); return; }
+  $('shareBtn').addEventListener('click', ()=>{
+    let src = selfSource || ('<!DOCTYPE html>\n'+document.documentElement.outerHTML);
     const ttl=($('titleInput').value||'A card for you').replace(/[<>"]/g,'').slice(0,80);
     src = src.replace(/<title>[\s\S]*?<\/title>/i, '<title>'+ttl+'</title>');
     const data=JSON.stringify(collectState()).replace(/<\//g,'<\\/');
