@@ -973,11 +973,25 @@
     const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 1500);
   }
-  function downloadFile(filename, text, type){
-    const blob=new Blob([text],{type:type||'text/plain'});
+  function anchorDownload(blob, filename){
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+    const a=document.createElement('a'); a.href=url; a.download=filename; a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 120000);
+  }
+  function downloadFile(filename, text, type){
+    const t=type||'text/plain';
+    const blob=new Blob([text],{type:t});
+    try{
+      if(window.File && navigator.canShare){
+        const file=new File([blob], filename, {type:t});
+        if(navigator.canShare({files:[file]})){
+          navigator.share({files:[file], title:filename}).catch(()=>anchorDownload(blob, filename));
+          return;
+        }
+      }
+    }catch(_){}
+    anchorDownload(blob, filename);
   }
   function safeName(){ return (($('titleInput').value||'card').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').slice(0,40))||'card'; }
   let lastCardFile='';
@@ -999,7 +1013,7 @@
     src = src.indexOf('</head>')>-1 ? src.replace('</head>', inject+'</head>') : inject+src;
     lastCardFile='card-'+safeName()+'.html';
     downloadFile(lastCardFile, src, 'text/html');
-    flashSaved('Card to send downloaded \u2713');
+    flashSaved('Card ready \u2014 choose Save to Files');
     $('snFile').textContent=lastCardFile;
     updateCardLink();
     $('sendNote').hidden=false;
