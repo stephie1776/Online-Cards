@@ -69,6 +69,7 @@
 
   .layout{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:start;}
   @media (max-width:860px){ .layout{grid-template-columns:1fr;gap:22px;} }
+  @media (min-width:861px){ .preview{position:sticky;top:14px;} }
 
   /* ---------- preview ---------- */
   .caption{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(17px,2.4vw,22px);
@@ -206,6 +207,37 @@
   .howto > div{margin-top:8px;line-height:1.55;}
   .howto b{color:var(--ink);}
 
+  /* mini peek preview */
+  .peekbtn{position:fixed;right:12px;bottom:12px;z-index:140;font:inherit;font-size:12px;font-weight:600;
+    padding:8px 14px;border-radius:999px;border:1px solid var(--ink);background:var(--ink);color:var(--accent-ink);
+    cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.22);}
+  .minipeek{position:fixed;right:12px;bottom:54px;z-index:140;background:#fff;border:1px solid var(--line);
+    border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.2);padding:6px;display:none;}
+  .minipeek.show{display:block;}
+  .minipeek .frame{width:150px;height:171px;overflow:hidden;position:relative;border-radius:8px;
+    background:radial-gradient(120% 90% at 50% 18%, #fff 0%, var(--paper) 60%, var(--paper-edge) 100%);}
+  .minipeek .frame > div{pointer-events:none;}
+  .minipeek .rnav,.minipeek .corner,.minipeek .openCue{display:none !important;}
+  .viewseg{margin-bottom:14px;}
+  .seg button:disabled{opacity:.4;cursor:default;}
+  body.presenting .viewseg,body.viewonly .viewseg{display:none !important;}
+  @media (min-width:861px){ .peekbtn,.minipeek{display:none !important;} }
+  body.presenting .peekbtn,body.presenting .minipeek,body.viewonly .peekbtn,body.viewonly .minipeek{display:none !important;}
+
+  /* image editor */
+  .editor{position:fixed;inset:0;z-index:300;background:rgba(40,38,35,.55);display:flex;
+    align-items:center;justify-content:center;padding:12px;}
+  .editbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;
+    max-width:96vw;max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:10px;}
+  .editbox h3{margin:0;font-family:'Fraunces',serif;font-size:16px;font-weight:600;}
+  .editbox canvas{max-width:86vw;max-height:52vh;width:auto;height:auto;border:1px solid var(--line);
+    border-radius:8px;touch-action:none;cursor:crosshair;align-self:center;}
+  .edrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .edrow input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer;padding:3px;appearance:none;-webkit-appearance:none;}
+  .edrow input[type=text]{flex:1;min-width:160px;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--field);}
+  .edrow .tool{font:inherit;font-size:12.5px;padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer;color:var(--ink);}
+  .edrow .tool[aria-pressed="true"]{background:var(--ink);color:var(--accent-ink);border-color:var(--ink);}
+
   /* ---------- controls ---------- */
   .panel{display:flex;flex-direction:column;gap:18px;}
   .group{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 16px 18px;}
@@ -291,6 +323,12 @@
     <section class="preview" aria-label="Preview">
       <p class="caption" id="caption">A card for someone</p>
       <div class="stage-shell" id="shell">
+        <div class="seg viewseg" id="viewSeg" role="group" aria-label="Preview view">
+          <button type="button" data-v="env" aria-pressed="true">Envelope</button>
+          <button type="button" data-v="cover" aria-pressed="false">Cover</button>
+          <button type="button" data-v="inside" aria-pressed="false">Inside</button>
+          <button type="button" data-v="back" aria-pressed="false">Back</button>
+        </div>
         <div class="stage" id="stage">
           <div class="card" id="card">
             <div class="face empty" id="sceneFace" data-empty="front cover"><div class="ptext" id="tFrontScene"></div></div>
@@ -463,6 +501,30 @@
             <button type="button" data-f="cover" aria-pressed="true">Fill</button>
             <button type="button" data-f="contain" aria-pressed="false">Fit / center</button>
           </div></div>
+        <div class="field"><label>Image size &amp; placement — pick a page, then slide</label>
+          <div class="seg" id="adjPageSeg" role="group" aria-label="Which page image to adjust">
+            <button type="button" data-apg="front" aria-pressed="true">Cover</button>
+            <button type="button" data-apg="left" aria-pressed="false">Left</button>
+            <button type="button" data-apg="right" aria-pressed="false">Right</button>
+            <button type="button" data-apg="back" aria-pressed="false">Back</button>
+          </div>
+          <label for="adjZoom" style="margin-top:8px">Image size <span id="adjZoomVal" style="color:var(--ink-soft);font-weight:400">100%</span></label>
+          <input id="adjZoom" type="range" min="40" max="250" value="100">
+          <label for="adjX">Move left &harr; right</label>
+          <input id="adjX" type="range" min="0" max="100" value="50">
+          <label for="adjY">Move up &#8597; down</label>
+          <input id="adjY" type="range" min="0" max="100" value="50">
+          <button class="linkbtn" id="adjReset" type="button">Reset this page's image</button>
+        </div>
+        <div class="field"><label>Draw or write on a page — pick a page, then open</label>
+          <div class="seg" id="editPageSeg" role="group" aria-label="Which page to draw on">
+            <button type="button" data-epg="front" aria-pressed="true">Cover</button>
+            <button type="button" data-epg="left" aria-pressed="false">Left</button>
+            <button type="button" data-epg="right" aria-pressed="false">Right</button>
+            <button type="button" data-epg="back" aria-pressed="false">Back</button>
+          </div>
+          <button class="filebtn" id="openEditor" type="button" style="margin-top:8px">&#9998; Open image editor</button>
+        </div>
         <div class="divider"></div>
 
         <p class="mini">Front cover</p>
@@ -539,6 +601,32 @@
     </section>
   </div>
 
+  <button class="peekbtn" id="peekBtn" type="button">Peek</button>
+  <div class="minipeek" id="peekWrap" aria-hidden="true"><div class="frame" id="peekFrame"></div></div>
+
+  <div class="editor" id="editor" hidden>
+    <div class="editbox">
+      <h3 id="editorTitle">Draw or write on the cover</h3>
+      <canvas id="editCanvas" width="900" height="1260"></canvas>
+      <div class="edrow">
+        <input id="editColor" type="color" value="#B45B3D" aria-label="Brush and text color">
+        <label class="rangelbl">Brush <input id="editSize" type="range" min="2" max="60" value="14"></label>
+        <button class="tool" id="editEraser" type="button" aria-pressed="false">Eraser</button>
+        <button class="tool" id="editUndo" type="button">Undo</button>
+        <button class="tool" id="editClear" type="button">Clear marks</button>
+      </div>
+      <div class="edrow">
+        <input id="editText" type="text" placeholder="Type words, then tap the picture to place them" maxlength="80">
+        <label class="rangelbl">Text size <input id="editTextSize" type="range" min="20" max="140" value="54"></label>
+        <button class="tool" id="editTextMode" type="button" aria-pressed="false">Place text</button>
+      </div>
+      <div class="edrow">
+        <button class="btn btn-play" id="editDone" type="button">Done — use this</button>
+        <button class="btn btn-reset" id="editCancel" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <footer class="foot">
     Everything stays in your browser — images aren't uploaded anywhere, and nothing is saved between visits, so finish in one sitting.
     PDF import and web fonts need a connection; everything else works offline.
@@ -586,8 +674,14 @@
     });
     if(clr) clr.addEventListener('click', ()=>{ applyFn(null); meta.textContent='No file yet.'; clr.hidden=true; inp.value=''; });
   }
+  const FACE_PAGE={sceneFace:'front',fFront:'front',fInsideLeft:'left',fInsideRight:'right',fBack:'back'};
   function setFace(el, data){ el.style.backgroundImage = data ? `url(${data})` : ''; el.classList.toggle('empty', !data);
-    el.style.backgroundSize = fitMode; el.style.backgroundPosition = 'center'; }
+    el.style.backgroundSize = fitMode; el.style.backgroundPosition = 'center';
+    const pg=FACE_PAGE[el.id];
+    if(pg && data && imgAdj[pg] && imgAdj[pg].on){
+      el.style.backgroundSize = imgAdj[pg].zoom+'% auto';
+      el.style.backgroundPosition = imgAdj[pg].x+'% '+imgAdj[pg].y+'%';
+    } }
 
   /* ---------- caption ---------- */
   $('titleInput').addEventListener('input', e => $('caption').textContent = e.target.value || '\u00A0');
@@ -735,12 +829,30 @@
 
   wireSeg('insideSeg', v=>{ insideMode=v; $('twoPageControls').hidden=(v!=='two'); $('contControls').hidden=(v!=='cont'); renderInside(); });
   wireSeg('fitSeg', v=>{ fitMode=v; applyFit(); });
+
+  /* per-page image size & placement */
+  const imgAdj={ front:{on:false,zoom:100,x:50,y:50}, left:{on:false,zoom:100,x:50,y:50},
+                 right:{on:false,zoom:100,x:50,y:50}, back:{on:false,zoom:100,x:50,y:50} };
+  let adjPage='front';
+  function refreshAdjUI(){ const a=imgAdj[adjPage]; $('adjZoom').value=a.zoom; $('adjX').value=a.x; $('adjY').value=a.y;
+    $('adjZoomVal').textContent=a.zoom+'%'; }
+  $('adjPageSeg').querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{
+    $('adjPageSeg').querySelectorAll('button').forEach(x=> x.setAttribute('aria-pressed', String(x===b)));
+    adjPage=b.dataset.apg; refreshAdjUI();
+  }));
+  function adjChanged(){ const a=imgAdj[adjPage]; a.on=true;
+    a.zoom=parseInt($('adjZoom').value,10); a.x=parseInt($('adjX').value,10); a.y=parseInt($('adjY').value,10);
+    $('adjZoomVal').textContent=a.zoom+'%'; applyFit(); saveSoon(); }
+  ['adjZoom','adjX','adjY'].forEach(id=> $(id).addEventListener('input', adjChanged));
+  $('adjReset').addEventListener('click', ()=>{ imgAdj[adjPage]={on:false,zoom:100,x:50,y:50}; refreshAdjUI(); applyFit(); saveSoon(); });
   function setCardType(v){
     cardType=v;
     $('multiPageControls').hidden = (v==='one');
+    $('viewSeg').querySelectorAll('button').forEach(b=>{ if(b.dataset.v==='inside'||b.dataset.v==='back') b.disabled=(v==='one'); });
     if(v==='one'){
       reader.classList.remove('show'); book.classList.remove('open','flipped'); shell.classList.remove('reading');
       stage.classList.remove('gone'); readerState='cover'; setReady(false);
+      syncViewSeg('env');
     }
     saveSoon();
   }
@@ -785,6 +897,74 @@
   }));
   ['front','left','right','back'].forEach(applyPos); refreshGrid();
 
+  /* draw / write on a page image */
+  let editPage='front';
+  $('editPageSeg').querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{
+    $('editPageSeg').querySelectorAll('button').forEach(x=> x.setAttribute('aria-pressed', String(x===b)));
+    editPage=b.dataset.epg;
+  }));
+  const edCv=$('editCanvas'), edCtx=edCv.getContext('2d');
+  const edBase=document.createElement('canvas'), edMark=document.createElement('canvas');
+  let edDrawing=false, edErasing=false, edTextMode=false, edLast=null; const edUndoStack=[];
+  function pageImgGet(pg){ return pg==='front'?frontImg : pg==='left'?leftImg : pg==='right'?rightImg : backImg; }
+  function pageImgSet(pg,d){
+    if(pg==='front'){ frontImg=d; $('frontMeta').textContent='Edited image'; $('frontClear').hidden=false; }
+    else if(pg==='left'){ leftImg=d; $('leftMeta').textContent='Edited image'; $('leftClear').hidden=false; }
+    else if(pg==='right'){ rightImg=d; $('rightMeta').textContent='Edited image'; $('rightClear').hidden=false; }
+    else { backImg=d; $('backMeta').textContent='Edited image'; $('backClear').hidden=false; }
+    applyFit(); saveSoon();
+  }
+  function edRedraw(){ edCtx.clearRect(0,0,edCv.width,edCv.height); edCtx.drawImage(edBase,0,0); edCtx.drawImage(edMark,0,0); }
+  function edPushUndo(){ try{ edUndoStack.push(edMark.getContext('2d').getImageData(0,0,edMark.width,edMark.height)); if(edUndoStack.length>15) edUndoStack.shift(); }catch(_){} }
+  const PAGE_LABEL={front:'the cover', left:'the left page', right:'the right page', back:'the back'};
+  $('openEditor').addEventListener('click', ()=>{
+    const W=900, H=Math.round(900/cardRatio);
+    edCv.width=W; edCv.height=H; edBase.width=W; edBase.height=H; edMark.width=W; edMark.height=H;
+    edMark.getContext('2d').clearRect(0,0,W,H); edUndoStack.length=0;
+    const bctx=edBase.getContext('2d');
+    bctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim()||'#F1E7D4';
+    bctx.fillRect(0,0,W,H);
+    const img=pageImgGet(editPage);
+    $('editorTitle').textContent='Draw or write on '+PAGE_LABEL[editPage];
+    if(img){ const im=new Image(); im.onload=()=>{ const sc=Math.max(W/im.width,H/im.height);
+        bctx.drawImage(im,(W-im.width*sc)/2,(H-im.height*sc)/2,im.width*sc,im.height*sc); edRedraw(); };
+      im.src=img; }
+    edRedraw();
+    $('editor').hidden=false;
+  });
+  function edPos(ev){ const r=edCv.getBoundingClientRect(); return {x:(ev.clientX-r.left)*(edCv.width/r.width), y:(ev.clientY-r.top)*(edCv.height/r.height)}; }
+  edCv.addEventListener('pointerdown', ev=>{
+    ev.preventDefault(); const p=edPos(ev); const m=edMark.getContext('2d');
+    if(edTextMode && $('editText').value.trim()){
+      edPushUndo();
+      m.globalCompositeOperation='source-over'; m.fillStyle=$('editColor').value;
+      m.font='600 '+parseInt($('editTextSize').value,10)+'px Fraunces, serif';
+      m.textAlign='center'; m.textBaseline='middle';
+      m.fillText($('editText').value.trim(), p.x, p.y);
+      edRedraw(); return;
+    }
+    edPushUndo(); edDrawing=true; edLast=p;
+    m.globalCompositeOperation=edErasing?'destination-out':'source-over';
+    m.fillStyle=$('editColor').value; m.beginPath();
+    m.arc(p.x,p.y,parseInt($('editSize').value,10)/2,0,Math.PI*2); m.fill();
+    edRedraw(); edCv.setPointerCapture(ev.pointerId);
+  });
+  edCv.addEventListener('pointermove', ev=>{
+    if(!edDrawing) return; const p=edPos(ev); const m=edMark.getContext('2d');
+    m.globalCompositeOperation=edErasing?'destination-out':'source-over';
+    m.strokeStyle=$('editColor').value; m.lineWidth=parseInt($('editSize').value,10);
+    m.lineCap='round'; m.lineJoin='round';
+    m.beginPath(); m.moveTo(edLast.x,edLast.y); m.lineTo(p.x,p.y); m.stroke();
+    edLast=p; edRedraw();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(e=> edCv.addEventListener(e, ()=>{ edDrawing=false; }));
+  $('editEraser').addEventListener('click', ()=>{ edErasing=!edErasing; $('editEraser').setAttribute('aria-pressed', String(edErasing)); if(edErasing){ edTextMode=false; $('editTextMode').setAttribute('aria-pressed','false'); } });
+  $('editTextMode').addEventListener('click', ()=>{ edTextMode=!edTextMode; $('editTextMode').setAttribute('aria-pressed', String(edTextMode)); if(edTextMode){ edErasing=false; $('editEraser').setAttribute('aria-pressed','false'); } });
+  $('editUndo').addEventListener('click', ()=>{ const p=edUndoStack.pop(); if(p){ edMark.getContext('2d').putImageData(p,0,0); edRedraw(); } });
+  $('editClear').addEventListener('click', ()=>{ edPushUndo(); edMark.getContext('2d').clearRect(0,0,edMark.width,edMark.height); edRedraw(); });
+  $('editCancel').addEventListener('click', ()=>{ $('editor').hidden=true; });
+  $('editDone').addEventListener('click', ()=>{ edRedraw(); pageImgSet(editPage, edCv.toDataURL('image/png')); $('editor').hidden=true; });
+
   /* ---------- reader (open/close/flip) ---------- */
   const stage=$('stage'), card=$('card'), reader=$('reader'), book=$('book'), rnav=$('rnav'), openCue=$('openCue'), shell=$('shell');
   let zTimer=null, playTimer=null, arrowTimer=null, flipTimer=null, readerState='cover', cardReady=false, bookScale=1;
@@ -811,6 +991,9 @@
     $('toCover').hidden = readerState!=='spread';
     $('toBack').hidden = readerState!=='spread';
     $('toInside').hidden = readerState!=='back';
+    if(readerState==='cover') syncViewSeg('cover');
+    else if(readerState==='spread') syncViewSeg('inside');
+    else if(readerState==='back') syncViewSeg('back');
   }
   function readerAction(a){
     clearTimeout(flipTimer);
@@ -848,7 +1031,32 @@
     shell.classList.remove('reading');
     stage.classList.remove('gone');
     openCue.classList.add('show');
+    syncViewSeg('env');
   }
+  let curViewSel='env';
+  function syncViewSeg(v){ curViewSel=v; $('viewSeg').querySelectorAll('button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.v===v))); }
+  function previewView(v){
+    clearTimeout(flipTimer);
+    if(v==='env'){ reset(); }
+    else{
+      clearTimeout(zTimer); clearTimeout(playTimer); clearTimeout(arrowTimer);
+      stage.classList.remove('play'); stage.classList.add('gone');
+      setReady(false);
+      shell.classList.add('reading');
+      reader.classList.add('show'); sizeBook();
+      if(v==='cover'){ book.classList.remove('open','flipped'); readerState='cover'; }
+      else if(v==='inside'){ book.classList.remove('flipped'); book.classList.add('open'); readerState='spread'; }
+      else { book.classList.remove('open'); book.classList.add('flipped'); readerState='back'; }
+      updateNav();
+    }
+    syncViewSeg(v);
+    schedulePeek();
+  }
+  $('viewSeg').querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{
+    const v=b.dataset.v;
+    if(cardType==='one' && (v==='inside'||v==='back')) return;
+    previewView(v);
+  }));
   openCue.addEventListener('click', enterReader);
   card.addEventListener('click', ()=>{ if(cardReady) enterReader(); });
   $('toCover').addEventListener('click', ()=> readerAction('close'));
@@ -867,6 +1075,7 @@
     setReady(false);
     shell.classList.remove('reading');
     reader.classList.remove('show'); book.classList.remove('open','flipped');
+    syncViewSeg('env');
     void stage.offsetWidth;
   }
   function play(){
@@ -895,7 +1104,7 @@
         textColor:$('sealTextColor').value, l1:$('sealLine1').value, l2:$('sealLine2').value,
         raw:uploadedSealRaw, trim:$('trimCircle').checked, drawn:drawnSealSrc,
         drawWax:$('drawWaxColor').value, backing:$('backingToggle').checked },
-      card:{ shape:shapeName(), size:$('bookSize').value, inside:insideMode, fit:fitMode, pages:cardType,
+      card:{ shape:shapeName(), size:$('bookSize').value, inside:insideMode, fit:fitMode, pages:cardType, adj:imgAdj,
         front:frontImg, left:leftImg, right:rightImg, spread:spreadImg, back:backImg,
         frontText:$('frontText').value, leftText:$('leftText').value, rightText:$('rightText').value, backText:$('backText').value,
         textColor:$('cardTextColor').value, bg:$('cardBg').value, pos:facePos }
@@ -932,6 +1141,7 @@
       $('twoPageControls').hidden=(insideMode!=='two'); $('contControls').hidden=(insideMode!=='cont');
       fitMode=c.fit||'cover'; setSegActive('fitSeg','f',fitMode);
       if(c.pages){ setSegActive('pagesSeg','pages',c.pages); setCardType(c.pages); }
+      if(c.adj){ ['front','left','right','back'].forEach(k=>{ if(c.adj[k]) Object.assign(imgAdj[k], c.adj[k]); }); refreshAdjUI(); }
       frontImg=c.front||null; leftImg=c.left||null; rightImg=c.right||null; spreadImg=c.spread||null; backImg=c.back||null;
       sv('frontText', c.frontText); $('tFront').textContent=c.frontText||''; $('tFrontScene').textContent=c.frontText||'';
       sv('leftText', c.leftText); $('tInsideLeft').textContent=c.leftText||'';
@@ -959,12 +1169,71 @@
   renderEnvelope();
   applyFit();
   const panelEl=document.querySelector('.panel');
-  ['input','change'].forEach(ev=> panelEl.addEventListener(ev, saveSoon));
-  panelEl.addEventListener('click', e=>{ if(e.target.closest('button')) saveSoon(); });
+  const PV={ titleInput:'env',envColor:'env',pocketAccent:'env',pocketUpload:'env',pocketClear:'env',
+    flapAccent:'env',flapUpload:'env',flapClear:'env',sealSize:'env',sealPos:'env',sealColor:'env',
+    sealTextColor:'env',sealLine1:'env',sealLine2:'env',sealUpload:'env',sealClear:'env',trimCircle:'env',
+    drawCanvas:'env',brushColor:'env',brushSize:'env',eraserBtn:'env',undoBtn:'env',clearBtn:'env',
+    backingToggle:'env',drawWaxColor:'env',
+    frontUpload:'cover',frontText:'cover',frontClear:'cover',
+    leftUpload:'inside',leftText:'inside',leftClear:'inside',rightUpload:'inside',rightText:'inside',
+    rightClear:'inside',spreadUpload:'inside',spreadClear:'inside',bookSize:'inside',
+    backUpload:'back',backText:'back',backClear:'back' };
+  function pageToView(p){ return p==='front'?'cover' : p==='back'?'back' : 'inside'; }
+  function viewForTarget(t){
+    if(!t || !t.closest) return null;
+    if(t.closest('#insideSeg')) return 'inside';
+    if(t.closest('#pocketSeg') || t.closest('#flapSeg') || t.closest('#sealSeg')) return 'env';
+    const pb=t.closest('#posPageSeg button'); if(pb) return pageToView(pb.dataset.pg);
+    const ab=t.closest('#adjPageSeg button'); if(ab) return pageToView(ab.dataset.apg);
+    const eb=t.closest('#editPageSeg button'); if(eb) return pageToView(eb.dataset.epg);
+    if(t.closest('#posGrid')) return pageToView(posPage);
+    if(['adjZoom','adjX','adjY','adjReset'].indexOf(t.id)>-1) return pageToView(adjPage);
+    if(t.id==='openEditor') return pageToView(editPage);
+    if(PV[t.id]) return PV[t.id];
+    return null;
+  }
+  function autoFollow(t){
+    let v=viewForTarget(t); if(!v) return;
+    if(cardType==='one' && (v==='inside'||v==='back')) v='cover';
+    if(v!==curViewSel) previewView(v);
+  }
+  ['input','change'].forEach(ev=> panelEl.addEventListener(ev, e=>{ autoFollow(e.target); saveSoon(); schedulePeek(); }));
+  panelEl.addEventListener('focusin', e=> autoFollow(e.target));
+  panelEl.addEventListener('click', e=>{ if(e.target.closest('button')){ autoFollow(e.target); saveSoon(); schedulePeek(); } });
   $('presentBtn').addEventListener('click', ()=>{
     const on=document.body.classList.toggle('presenting');
     $('presentBtn').textContent = on ? 'Show controls' : 'Hide controls';
     if(reader.classList.contains('show')) sizeBook();
+  });
+
+  /* mini peek preview (small screens) */
+  let peekTimer=null;
+  function refreshPeek(){
+    const f=$('peekFrame'); if(!f || !$('peekWrap').classList.contains('show')) return;
+    const showingReader = reader.classList.contains('show');
+    const srcEl = showingReader ? reader : stage;
+    const r = srcEl.getBoundingClientRect();
+    if(!r.width || !r.height) return;
+    const cl = srcEl.cloneNode(true);
+    cl.removeAttribute('id'); cl.classList.remove('gone','play');
+    cl.querySelectorAll('[id]').forEach(n=> n.removeAttribute('id'));
+    const wrap=document.createElement('div');
+    const sc=Math.min(150/r.width, 171/r.height);
+    wrap.style.position='absolute';
+    wrap.style.left=((150 - r.width*sc)/2)+'px';
+    wrap.style.top=((171 - r.height*sc)/2)+'px';
+    wrap.style.width=r.width+'px'; wrap.style.height=r.height+'px';
+    wrap.style.transform='scale('+sc+')'; wrap.style.transformOrigin='top left';
+    wrap.style.pointerEvents='none';
+    cl.style.position='absolute'; cl.style.inset='0';
+    wrap.appendChild(cl);
+    f.innerHTML=''; f.appendChild(wrap);
+  }
+  function schedulePeek(){ clearTimeout(peekTimer); peekTimer=setTimeout(refreshPeek, 300); }
+  $('peekBtn').addEventListener('click', ()=>{
+    const on=$('peekWrap').classList.toggle('show');
+    $('peekBtn').textContent = on ? 'Hide peek' : 'Peek';
+    if(on) refreshPeek();
   });
   $('clearSaved').addEventListener('click', ()=>{ try{ localStorage.removeItem(SAVE_KEY); }catch(_){} location.reload(); });
   function downloadText(filename, text){
@@ -973,11 +1242,25 @@
     const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 1500);
   }
-  function downloadFile(filename, text, type){
-    const blob=new Blob([text],{type:type||'text/plain'});
+  function anchorDownload(blob, filename){
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+    const a=document.createElement('a'); a.href=url; a.download=filename; a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 120000);
+  }
+  function downloadFile(filename, text, type){
+    const t=type||'text/plain';
+    const blob=new Blob([text],{type:t});
+    try{
+      if(window.File && navigator.canShare){
+        const file=new File([blob], filename, {type:t});
+        if(navigator.canShare({files:[file]})){
+          navigator.share({files:[file], title:filename}).catch(()=>anchorDownload(blob, filename));
+          return;
+        }
+      }
+    }catch(_){}
+    anchorDownload(blob, filename);
   }
   function safeName(){ return (($('titleInput').value||'card').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').slice(0,40))||'card'; }
   let lastCardFile='';
@@ -999,7 +1282,7 @@
     src = src.indexOf('</head>')>-1 ? src.replace('</head>', inject+'</head>') : inject+src;
     lastCardFile='card-'+safeName()+'.html';
     downloadFile(lastCardFile, src, 'text/html');
-    flashSaved('Card to send downloaded \u2713');
+    flashSaved('Card ready \u2014 choose Save to Files');
     $('snFile').textContent=lastCardFile;
     updateCardLink();
     $('sendNote').hidden=false;
