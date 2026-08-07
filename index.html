@@ -634,6 +634,12 @@
 </div>
 
 <script>
+window.addEventListener('error', function(e){
+  var s=document.getElementById('saveState');
+  if(s) s.textContent='\u26A0 '+((e && e.message) ? e.message : 'Script error')+((e && e.lineno)?(' (line '+e.lineno+')'):'');
+});
+</script>
+<script>
   const $ = (id) => document.getElementById(id);
   if(typeof pdfjsLib !== 'undefined'){
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1079,12 +1085,14 @@
     void stage.offsetWidth;
   }
   function play(){
-    reset();
-    playTimer=setTimeout(()=>{
-      stage.classList.add('play');
-      zTimer=setTimeout(()=>{ card.style.zIndex='60'; }, 6000);
-      arrowTimer=setTimeout(()=>{ if(cardType==='full') setReady(true); }, 8300);
-    }, 20);
+    try{
+      reset();
+      playTimer=setTimeout(()=>{
+        stage.classList.add('play');
+        zTimer=setTimeout(()=>{ card.style.zIndex='60'; }, 6000);
+        arrowTimer=setTimeout(()=>{ if(cardType==='full') setReady(true); }, 8300);
+      }, 20);
+    }catch(err){ flashSaved('\u26A0 Play error: '+err.message); }
   }
   $('playBtn').addEventListener('click', play);
   $('resetBtn').addEventListener('click', reset);
